@@ -2,9 +2,9 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 import uvicorn
-import os
 import auto_deploy
 import auto_stop
+import os
 
 app = FastAPI()
 
@@ -16,31 +16,37 @@ def index():
     with open(index_path, encoding="utf-8") as f:
         return f.read()
 
+# 🔥 문제 경로를 body로 받도록 수정 (확장 가능)
 @app.post("/start")
-def start():
+def start(problem: str = "pwn1"):
     try:
-        result = auto_deploy.deploy()
+        # 문제 폴더 절대경로
+        problem_dir = f"/home/hexa/hexactf/{problem}"
+
+        if not os.path.exists(problem_dir):
+            return {"status": "error", "error": f"Problem folder not found: {problem_dir}"}
+
+        result = auto_deploy.deploy(problem_dir)
         port = result["external_port"]
 
-        # 여기 나중에 실제 서버 IP/도메인으로 바꿔
-        server_host = "http://localhost"
-        url = f"{server_host}:{port}"
+        # 서버 IP
+        server_host = "http://192.168.0.163"
 
-        print("[START] 컨테이너 정보:", result)
+        url = f"{server_host}:{port}"
         return {"status": "ok", "url": url}
+
     except Exception as e:
-        print("[START ERROR]", e)
         return {"status": "error", "error": str(e)}
 
 @app.post("/stop")
 def stop():
     try:
         auto_stop.stop()
-        print("[STOP] 컨테이너 종료 요청 완료")
         return {"status": "ok"}
     except Exception as e:
-        print("[STOP ERROR]", e)
         return {"status": "error", "error": str(e)}
 
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=5000, reload=True)
+    # 🔥 중요: 모듈 경로는 "api.api:app" 이 맞아야 함
+    uvicorn.run("api.api:app", host="0.0.0.0", port=5000, reload=True)

@@ -20,7 +20,6 @@
             fetch("/start", { method: "POST" })
                 .then(response => response.json())
                 .then(data => {
-                    console.log("start response:", data);
                     if (data.url) {
                         alert("문제가 생성되었습니다!\n접속 URL: " + data.url);
 
@@ -38,7 +37,6 @@
             fetch("/stop", { method: "POST" })
                 .then(response => response.json())
                 .then(data => {
-                    console.log("stop response:", data);
                     if (data.status === "ok") {
                         alert("문제 종료 요청 전송됨");
                         const link = document.getElementById("challenge_link");
