@@ -1,9 +1,10 @@
-# auto_stop.py
 import subprocess
 
 def stop():
-    subprocess.run(["docker", "stop", "test_challenge"], check=False)
-    subprocess.run(["docker", "rm", "test_challenge"], check=False)
+    name = "test_challenge"
+    subprocess.run(["docker", "stop", name])
+    subprocess.run(["docker", "rm", name])
+    print("컨테이너 종료 및 삭제 완료")
 
 if __name__ == "__main__":
     stop()

@@ -8,10 +8,12 @@ app = Flask(__name__)
 def index():
     return open("index.html").read()
 
-@app.post("/start")
+@app.route("/start", methods=["POST"])
 def start():
-    subprocess.Popen(["python3", "auto_deploy.py"])
-    return {"status": "started"}
+    external_port = create_container()  # 자동 생성 코드
+    url = f"http://{SERVER_IP}:{external_port}"
+
+    return jsonify({"url": url})
 
 @app.post("/stop")
 def stop():
