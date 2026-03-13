@@ -4,7 +4,7 @@ from . import auth
 from .deps import get_admin_user
 from .deps import require_csrf
 from .. import models
-from ..settings_store import get_user_instance_limit, set_user_instance_limit
+from ..main.settings_service import get_user_instance_limit, set_user_instance_limit
 
 router = APIRouter()
 

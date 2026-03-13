@@ -6,12 +6,7 @@ import secrets
 import time
 
 from ..storage_utils import atomic_write_json, exclusive_lock
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-API_DIR = os.path.dirname(BASE_DIR)
-ROOT_DIR = os.path.dirname(API_DIR)
-DATA_DIR = os.path.join(ROOT_DIR, "data")
-USERS_FILE = os.path.join(DATA_DIR, "users.json")
+from ..config import DATA_DIR, USERS_FILE
 USERS_LOCK_FILE = USERS_FILE + ".lock"
 
 PBKDF2_ITERATIONS = int(os.environ.get("HEXACTF_PBKDF2_ITERATIONS", "200000"))
@@ -265,3 +260,32 @@ def reset_scoreboard() -> int:
         data["users"] = users
         _save_raw_unlocked(data)
         return updated
+
+
+def mark_problem_solved(username: str, problem_key: str, score: int) -> tuple[bool, dict]:
+    username = _normalize_username(username)
+    with exclusive_lock(USERS_LOCK_FILE):
+        data = _load_raw_unlocked()
+        users = data.get("users", {})
+        user = users.get(username)
+        if not user:
+            raise ValueError("user not found")
+
+        solved = user.get("solved_problems") or []
+        if not isinstance(solved, list):
+            solved = []
+
+        if problem_key in solved:
+            users[username] = user
+            data["users"] = users
+            _save_raw_unlocked(data)
+            return False, public_user(user)
+
+        solved.append(problem_key)
+        user["solved_problems"] = solved
+        current_score = int(user.get("score", 0))
+        user["score"] = current_score + int(score)
+        users[username] = user
+        data["users"] = users
+        _save_raw_unlocked(data)
+        return True, public_user(user)

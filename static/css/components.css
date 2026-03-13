@@ -114,6 +114,67 @@
   margin-top: 2px;
 }
 
+.flag-box{
+  display:flex;
+  flex-direction:column;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.03);
+}
+.flag-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 8px;
+}
+.flag-form{
+  display:flex;
+  gap: 8px;
+  align-items:center;
+}
+.flag-input{
+  flex:1;
+  min-width:0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  font-size: 13px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.flag-input::placeholder{
+  color: rgba(154,164,178,0.7);
+}
+.flag-input:focus{
+  outline: none;
+  border-color: rgba(124,92,255,0.6);
+  box-shadow: 0 0 0 3px rgba(124,92,255,0.18);
+}
+.flag-form .btn{
+  padding: 9px 12px;
+  white-space: nowrap;
+}
+.flag-message{
+  min-height: 16px;
+}
+.flag-message.ok{
+  color: var(--ok);
+  background: rgba(46,229,157,0.08);
+  border: 1px solid rgba(46,229,157,0.25);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.flag-message.error{
+  color: var(--danger);
+  background: rgba(255,77,109,0.08);
+  border: 1px solid rgba(255,77,109,0.25);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
 .btn{
   border: 1px solid rgba(124,92,255,0.35);
   background: rgba(124,92,255,0.16);

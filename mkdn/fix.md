@@ -293,3 +293,80 @@
 - `/api/auth/login`, `/api/auth/register`는 쿠키를 새로 설정(Set-Cookie)하므로, 브라우저 기준으로는 “다른 사이트에서 로그인/회원가입 요청을 날려 세션을 바꿔치기”하는 시도가 가능합니다.
 - 이를 완화하기 위해 `Origin`/`Referer`가 있는 요청은 **same-origin**만 허용하도록 체크를 추가했습니다.
   - 파일: `api/auth/routes_auth.py` (`require_same_origin`)
+
+---
+
+## 7) (추가) challenges.json 로드 방식
+
+요청하신 대로 **서버 시작 시 1회 로드(캐시)** 모드가 기본입니다.
+- 환경변수: `HEXACTF_CHALLENGES_CACHE`
+  - 기본값 `1` → 서버 시작 시 캐시 로드 + 이후 요청은 캐시 사용
+  - `0` → 기존 방식(요청마다 파일 읽기)
+- 관련 파일:
+  - 캐시 로직: `api/challenges/store.py`
+  - startup에서 캐시 warm-up: `api/api.py`
+
+---
+
+## 8) (추가) challenges 캐시 리로드 + 라우트 스텁 정리
+
+### (8-1) 관리자 리로드 엔드포인트
+- `POST /api/admin/challenges/reload` 추가
+  - 서버 캐시를 다시 로드하고(`challenges.json` 반영) 로드된 개수를 반환
+  - 파일: `api/auth/routes_admin.py`
+
+### (8-2) 관리자 UI 버튼 추가
+- Admin 페이지에 “Reload Challenges” 버튼 추가
+  - 파일: `static/pages/admin.html`, `static/js/app-admin.js`, `static/js/app-core.js`
+
+### (8-3) 라우트 re-export 스텁 제거
+- 이제 도메인 라우터로 직접 import하므로 아래 스텁들은 삭제:
+  - `api/routes_instances.py`, `api/routes_challenges.py`, `api/routes_pages.py`, `api/routes_scoreboard.py`
+  - `api/challenge_store.py`
+
+---
+
+## 9) (추가) 모듈 수 축소 리팩터링
+
+요청대로 **디렉터리로 기능을 분리하되 모듈 수는 줄이는 방향**으로 정리했습니다.
+
+- `api/app/` 아래에 기능을 합쳐 “도메인별 단일 파일”로 통합:
+  - `api/app/instances.py` (routes + service + runtime + store)
+  - `api/app/challenges.py` (routes + load/cache + downloads)
+  - `api/app/pages.py`
+  - `api/app/scoreboard.py`
+- 기존 `api/instances/*`, `api/challenges/*`, `api/pages/*`, `api/scoreboard/*`는 제거
+- `api/api.py`는 새 `api/app/*` 라우터를 include하도록 갱신
+
+---
+
+## 10) (추가) 오류 처리 정리
+
+- 인스턴스 시작 시 `challenges.json` 로드 오류를 명확히 처리:
+  - 파일 없음/JSON 오류 → `500` 에러 메시지로 변환
+  - 파일: `api/app/instances.py`
+- 관리자 캐시 리로드에서도 동일하게 파일 오류를 HTTP 에러로 변환:
+  - 파일: `api/auth/routes_admin.py`
+
+---
+
+## 11) (추가) 안정성 점검 보강
+
+- startup 캐시 로드 실패를 조용히 무시하지 않고 로그로 남김:
+  - 파일: `api/api.py`
+- `challenges.json`이 dict가 아니면 명확히 오류 처리:
+  - 파일: `api/app/challenges.py`
+- 인스턴스 생성 시 challenge 엔트리 타입/dir 누락을 명확히 검사:
+  - 파일: `api/app/instances.py`
+
+---
+
+## 12) (추가) 플래그 제출 + 남은 문제 등록
+
+- 플래그 제출 API 추가: `POST /submit` 및 `POST /api/submit`
+  - challenges.json의 `flag` 또는 `flag_path`로 검증
+  - 정답이면 유저 점수/solved 갱신
+  - 파일: `api/app/challenges.py`, `api/auth/auth.py`, `api/models.py`
+- `challenges.json`에 남은 문제 항목 추가
+  - container가 필요 없는 문제는 `"container": false`로 지정
+  - `container_dir`로 Dockerfile 위치 분리 지원

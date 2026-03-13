@@ -7,10 +7,7 @@ import secrets
 import time
 
 from .storage_utils import atomic_write_text, exclusive_lock
-
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(ROOT_DIR, "data")
-SECRET_FILE = os.path.join(DATA_DIR, "secret.key")
+from .config import SECRET_FILE
 SECRET_LOCK_FILE = SECRET_FILE + ".lock"
 
 DEFAULT_TTL = int(os.environ.get("HEXACTF_TOKEN_TTL", "86400"))

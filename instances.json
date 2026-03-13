@@ -1,4 +1,15 @@
 {
-  "next_instance_id": 13,
-  "instances": {}
+  "next_instance_id": 43,
+  "instances": {
+    "30": {
+      "instance_id": 30,
+      "problem": "web_lfi",
+      "challenge_id": "Utilizing_LFI",
+      "title": "Utilizing LFI",
+      "status": "running",
+      "owner": "admin",
+      "port": 38779,
+      "container": "user_30"
+    }
+  }
 }

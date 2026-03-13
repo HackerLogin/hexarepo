@@ -18,3 +18,8 @@ class StartRequest(BaseModel):
 
 class SettingsUpdateRequest(BaseModel):
     user_instance_limit: int
+
+
+class SubmitRequest(BaseModel):
+    problem: str
+    flag: str
