@@ -2,7 +2,6 @@
   const dom = {
     grid: document.getElementById("grid"),
     logEl: document.getElementById("log"),
-    apiStatusEl: document.getElementById("apiStatus"),
     filtersEl: document.getElementById("filters"),
     searchInput: document.getElementById("searchInput"),
     clearLogBtn: document.getElementById("clearLogBtn"),
@@ -48,19 +47,6 @@
     dom.logEl.scrollTop = dom.logEl.scrollHeight;
   }
 
-  function setApiStatus(ok) {
-    const dot = document.querySelector(".dot");
-    if (!dot || !dom.apiStatusEl) return;
-    if (ok) {
-      dot.style.background = "var(--ok)";
-      dot.style.boxShadow = "0 0 0 4px rgba(46,229,157,0.12)";
-      dom.apiStatusEl.textContent = "API: online";
-    } else {
-      dot.style.background = "var(--danger)";
-      dot.style.boxShadow = "0 0 0 4px rgba(255,77,109,0.12)";
-      dom.apiStatusEl.textContent = "API: offline (fallback data)";
-    }
-  }
 
   function setScoreboardStatus(ok, detail) {
     if (!dom.scoreboardStatusEl) return;
@@ -121,6 +107,21 @@
     return String(str).replaceAll('"', "%22");
   }
 
+  function getCookie(name) {
+    const target = `${name}=`;
+    const parts = String(document.cookie || "").split(/;\s*/);
+    for (const part of parts) {
+      if (part.startsWith(target)) {
+        return decodeURIComponent(part.slice(target.length));
+      }
+    }
+    return "";
+  }
+
+  function getCsrfToken() {
+    return getCookie("hexactf_csrf");
+  }
+
   function parseHostPort(url) {
     try {
       const u = new URL(url);
@@ -157,7 +158,6 @@
     dom,
     state,
     log,
-    setApiStatus,
     setScoreboardStatus,
     safeJson,
     fetchWithTimeout,
@@ -165,6 +165,8 @@
     formatBytes,
     escapeHtml,
     escapeAttr,
+    getCookie,
+    getCsrfToken,
     parseHostPort,
     buildConnectHint
   });

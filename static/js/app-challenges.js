@@ -1,5 +1,5 @@
 (() => {
-  const { dom, state, log, safeJson, fetchWithTimeout, setApiStatus, normalizeCat, formatBytes, escapeHtml, escapeAttr, buildConnectHint } = window.HEXACTF;
+  const { dom, state, log, safeJson, fetchWithTimeout, normalizeCat, formatBytes, escapeHtml, escapeAttr, buildConnectHint } = window.HEXACTF;
 
   function renderDownloads(ch) {
     const files = Array.isArray(ch.downloads) ? ch.downloads : [];
@@ -67,6 +67,17 @@
           </button>
         </div>
 
+        <div class="flag-box">
+          <div class="flag-head">
+            <span class="small">Flag</span>
+            <span class="flag-message small" data-field="flag-message"></span>
+          </div>
+          <div class="flag-form">
+            <input class="flag-input" type="text" placeholder="Enter flag..." data-field="flag-input" ${locked ? "disabled" : ""} />
+            <button class="btn btn-ghost" data-action="submit-flag" ${locked ? "disabled" : ""}>Submit Flag</button>
+          </div>
+        </div>
+
         <div class="instance ${isRunning ? "show" : ""}">
           <div class="row">
             <div>
@@ -121,6 +132,53 @@
     dom.grid.innerHTML = filtered.map(cardHTML).join("");
   }
 
+  function setFlagMessage(card, message, type) {
+    if (!card) return;
+    const el = card.querySelector('[data-field="flag-message"]');
+    if (!el) return;
+    el.textContent = message || "";
+    el.classList.remove("ok", "error");
+    if (type) el.classList.add(type);
+  }
+
+  async function submitFlag(problemKey, card) {
+    const input = card.querySelector('[data-field="flag-input"]');
+    if (!input) return;
+    const flag = String(input.value || "").trim();
+    if (!flag) {
+      setFlagMessage(card, "Flag를 입력하세요.", "error");
+      return;
+    }
+
+    const csrf = window.HEXACTF.getCsrfToken ? window.HEXACTF.getCsrfToken() : "";
+    const res = await fetch("/api/submit", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+        ...(window.HEXACTF.authHeaders ? window.HEXACTF.authHeaders() : {})
+      },
+      body: JSON.stringify({ problem: problemKey, flag })
+    });
+    const data = await safeJson(res);
+
+    if (!res.ok || data.status !== "ok") {
+      const msg = data.detail || data.error || "Submit failed";
+      throw new Error(msg);
+    }
+
+    if (data.correct) {
+      const bonus = Number(data.score_awarded || 0);
+      const msg = data.already_solved
+        ? "정답입니다. (이미 해결됨)"
+        : (Number.isFinite(bonus) && bonus > 0 ? `정답입니다! +${bonus}점` : "정답입니다!");
+      setFlagMessage(card, msg, "ok");
+      input.value = "";
+    } else {
+      setFlagMessage(card, "오답입니다.", "error");
+    }
+  }
+
   async function loadChallenges() {
     const fallback = [
       {
@@ -164,11 +222,9 @@
         };
       });
 
-      setApiStatus(true);
       log(`Loaded challenges from API: ${arr.length}`);
       return arr;
     } catch (e) {
-      setApiStatus(false);
       const reason = e.name === "AbortError" ? "timeout" : e.message;
       log(`API load failed -> fallback 사용: ${reason}`);
       return fallback;
@@ -204,10 +260,15 @@
 
   async function startInstance(problemKey) {
     log(`Start 요청: ${problemKey}`);
+    const csrf = window.HEXACTF.getCsrfToken ? window.HEXACTF.getCsrfToken() : "";
 
     const res = await fetch("/start", {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...(window.HEXACTF.authHeaders ? window.HEXACTF.authHeaders() : {}) },
+      headers: {
+        "Content-Type": "application/json",
+        ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+        ...(window.HEXACTF.authHeaders ? window.HEXACTF.authHeaders() : {})
+      },
       body: JSON.stringify({ problem: problemKey })
     });
 
@@ -232,10 +293,14 @@
     if (!instance) return;
 
     log(`Stop 요청: ${problemKey} (instance_id=${instance.instance_id})`);
+    const csrf = window.HEXACTF.getCsrfToken ? window.HEXACTF.getCsrfToken() : "";
 
     const res = await fetch(`/stop/${instance.instance_id}`, {
       method: "POST",
-      headers: { ...(window.HEXACTF.authHeaders ? window.HEXACTF.authHeaders() : {}) }
+      headers: {
+        ...(csrf ? { "X-CSRF-Token": csrf } : {}),
+        ...(window.HEXACTF.authHeaders ? window.HEXACTF.authHeaders() : {})
+      }
     });
 
     const data = await safeJson(res);
@@ -303,12 +368,34 @@
           await copyUrl(key);
         } else if (action === "copy-connect") {
           await copyConnect(key);
+        } else if (action === "submit-flag") {
+          btn.disabled = true;
+          setFlagMessage(card, "제출 중...", "");
+          await submitFlag(key, card);
         }
       } catch (err) {
         log(`ERROR: ${err.message}`);
+        setFlagMessage(card, err.message || "제출 실패", "error");
         console.error(err);
       } finally {
-        render();
+        btn.disabled = false;
+      }
+    });
+
+    dom.grid.addEventListener("keydown", async (e) => {
+      const input = e.target.closest(".flag-input");
+      if (!input || e.key !== "Enter") return;
+      const card = input.closest(".card");
+      if (!card) return;
+      const key = card.dataset.key;
+      e.preventDefault();
+      setFlagMessage(card, "제출 중...", "");
+      try {
+        await submitFlag(key, card);
+      } catch (err) {
+        log(`ERROR: ${err.message}`);
+        setFlagMessage(card, err.message || "제출 실패", "error");
+        console.error(err);
       }
     });
   }

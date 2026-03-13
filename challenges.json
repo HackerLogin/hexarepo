@@ -2,41 +2,160 @@
   "pwn1": {
     "challenge_id": "pwn-01-basic",
     "title": "기초 버퍼 오버플로우",
-    "dir": "/home/hexa/hexactf/challenges/pwn1",
+    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/PW/pwn1",
     "category": "pwn",
     "score": 100,
-    "port":5001,
+    "port": 5001,
     "type": "pwn",
     "downloads": [
       { "label": "prob", "path": "deploy/prob" }
-    ]
+    ],
+    "flag_path": "deploy/flag.txt"
   },
   "pwn2": {
     "challenge_id": "BasicROP",
     "title": "기초 ROP",
-    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/PW/Basic_ROP/public",
+    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/PW/Basic_ROP",
+    "container_dir": "public",
     "category": "pwn",
     "score": 100,
-    "port":10011,
+    "port": 10011,
     "type": "pwn",
     "downloads": [
-      { "label": "prob", "path": "deploy/prob" },
-      { "label": "prob.c", "path": "deploy/prob.c" },
-      { "label": "libc.so.6", "path": "deploy/libc.so.6" }
-    ]
+      { "label": "prob", "path": "public/deploy/prob" },
+      { "label": "prob.c", "path": "public/deploy/prob.c" },
+      { "label": "libc.so.6", "path": "public/deploy/libc.so.6" }
+    ],
+    "flag_path": "private/flag"
   },
   "pwn3": {
     "challenge_id": "BaseballGame",
-    "title": "baseball",
-    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/PW/baseball_game/public",
+    "title": "baseball_game",
+    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/PW/baseball_game",
+    "container_dir": "public",
     "category": "pwn",
     "score": 150,
-    "port":10010,
+    "port": 10010,
     "type": "pwn",
     "downloads": [
-      { "label": "prob", "path": "deploy/prob" },
-      { "label": "prob.c", "path": "deploy/prob.c" },
-      { "label": "libc.so.6", "path": "deploy/libc.so.6" }
+      { "label": "prob", "path": "public/deploy/prob" },
+      { "label": "prob.c", "path": "public/deploy/prob.c" },
+      { "label": "libc.so.6", "path": "public/deploy/libc.so.6" }
+    ],
+    "flag_path": "private/flag"
+  },
+  "web_villa": {
+    "challenge_id": "villa",
+    "title": "Villa",
+    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/web/villa",
+    "container_dir": "user",
+    "category": "web",
+    "score": 200,
+    "type": "web",
+    "flag": "HexaCTF{Can_you_solve_this?}"
+  },
+  "web_ssti": {
+    "challenge_id": "SSTI",
+    "title": "SSTI",
+    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/web/SSTI",
+    "container_dir": "user",
+    "category": "web",
+    "score": 200,
+    "port": 8000,
+    "type": "web",
+    "flag_path": "admin/app/flag.txt"
+  },
+  "web_lfi": {
+    "challenge_id": "Utilizing_LFI",
+    "title": "Utilizing LFI",
+    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/web/Utilizing_LFI",
+    "container_dir": "user",
+    "category": "web",
+    "score": 200,
+    "port": 80,
+    "type": "web",
+    "flag_path": "admin/public/flag.txt"
+  },
+  "forensic_divide": {
+    "challenge_id": "divide",
+    "title": "divide",
+    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/forensic/divide",
+    "category": "forensic",
+    "score": 120,
+    "type": "forensic",
+    "container": false,
+    "flag_path": "flag.txt"
+  },
+  "forensic_easy_android": {
+    "challenge_id": "easy_android",
+    "title": "easy_android",
+    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/forensic/easy_android",
+    "category": "forensic",
+    "score": 120,
+    "type": "forensic",
+    "container": false,
+    "downloads": [
+      { "label": "easy_android.zip", "path": "easy_android.zip" }
+    ]
+  },
+  "forensic_easy_forensic": {
+    "challenge_id": "easy_forensic",
+    "title": "easy_forensic",
+    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/forensic/easy_forensic",
+    "category": "forensic",
+    "score": 120,
+    "type": "forensic",
+    "container": false,
+    "downloads": [
+      { "label": "flag.mp3", "path": "flag.mp3" }
+    ]
+  },
+  "rev_reversing": {
+    "challenge_id": "reversing_01",
+    "title": "Reversing",
+    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/rev",
+    "category": "rev",
+    "score": 150,
+    "type": "rev",
+    "container": false,
+    "downloads": [
+      { "label": "reversing.zip", "path": "250212_수정_리버싱.zip" }
+    ],
+    "flag": "HexaCTF{h1dD3n_aRr@ng3MeNt}"
+  },
+  "misc_lunch_maze": {
+    "challenge_id": "lunch_maze",
+    "title": "Lunch maze",
+    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/misc/lunch-maze",
+    "container_dir": "server",
+    "category": "misc",
+    "score": 150,
+    "port": 5000,
+    "type": "misc",
+    "flag_path": "server/flag.txt"
+  },
+  "misc_audiomaster": {
+    "challenge_id": "audiomaster",
+    "title": "AudioMaster",
+    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/misc",
+    "category": "misc",
+    "score": 120,
+    "type": "misc",
+    "container": false,
+    "downloads": [
+      { "label": "AudioMaster.zip", "path": "AudioMaster.zip" }
+    ]
+  },
+  "misc_this_is_image": {
+    "challenge_id": "this_is_image",
+    "title": "This is Image",
+    "dir": "/home/hexa/hexactf/HexaCTF_Challenges/misc",
+    "category": "misc",
+    "score": 120,
+    "type": "misc",
+    "container": false,
+    "downloads": [
+      { "label": "This is Image.txt", "path": "This is Image.txt" }
     ]
   }
 }

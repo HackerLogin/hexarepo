@@ -17,16 +17,21 @@
 ## 0) 변경 파일 목록(이번 작업 기준)
 
 ### 추가(신규)
-- `auto_api/settings_store.py` (설정 저장소: `data/settings.json`)
-- `auto_api/storage_utils.py` (파일 락/atomic write 유틸)
+- `api/settings_store.py` (설정 저장소: `data/settings.json`)
+- `api/storage_utils.py` (파일 락/atomic write 유틸)
+- `api/instances/service.py` (인스턴스 도메인 로직)
+- `api/instances/runtime.py` (Docker deploy/stop 래퍼)
+- `api/instances/store.py` (instances.json 접근 파사드)
+- `api/instances/errors.py` (서비스 레이어 에러)
+- `api/instances/__init__.py`
 - `mkdn/fix.md` (이 문서)
 
 ### 수정
 - Backend:
-  - `auto_api/routes_instances.py`, `auto_api/routes_admin.py`, `auto_api/routes_auth.py`, `auto_api/models.py`
-  - `auto_api/routes_challenges.py`, `auto_api/state_store.py`, `auto_api/settings_store.py`
-  - `auto_api/auth.py`, `auto_api/token.py`, `auto_api/deps.py`
-  - `auto_api/auto_deploy.py`, `auto_api/auto_stop.py`
+  - `api/routes_instances.py`, `api/routes_challenges.py`, `api/state_store.py`, `api/token.py`, `api/models.py`
+  - `api/auth/auth.py`, `api/auth/deps.py`, `api/auth/routes_auth.py`, `api/auth/routes_admin.py`
+  - `api/auto_api/auto_deploy.py`, `api/auto_api/auto_stop.py`
+  - (정리) `api/api.py`, `api/routes_scoreboard.py`, `api/settings_store.py`, `api/storage_utils.py`
 - Front:
   - `static/pages/challenges.html`, `static/pages/admin.html`, `static/pages/login.html`
   - `static/js/app-core.js`, `static/js/app-auth.js`, `static/js/app-router.js`, `static/js/app-admin.js`, `static/js/app-challenges.js`, `static/js/app-main.js`
@@ -83,7 +88,7 @@
 ## 2) 백엔드(API) 변경
 
 ### (1) 일반 사용자당 컨테이너 생성 제한 + owner 기반 Stop 권한
-- 파일: `auto_api/routes_instances.py`
+- 파일: `api/routes_instances.py`
 - 변경 내용:
   - `/start`는 인증 필수(Authorization 헤더 또는 HttpOnly 쿠키) (`get_current_user`)
   - **락을 잡고** limit 체크 + instance_id 할당 + `status=starting` 예약 저장 → 동시요청으로 limit/ID 우회 방지
@@ -93,7 +98,7 @@
   - `/stop/{id}`도 인증 필수 + (admin이 아니면) owner만 stop 가능 (`403` 방지)
 
 ### (2) 실행중 인스턴스 조회 API 추가
-- 파일: `auto_api/routes_instances.py`
+- 파일: `api/routes_instances.py`
 - 추가: `GET /api/instances`
   - user: 본인(owner==username) 인스턴스만 반환
   - admin: 전체 인스턴스 반환(+ `owner` 포함)
@@ -101,43 +106,43 @@
   - `status` 필드도 함께 반환(프론트 디버깅/운영 확인용)
 
 ### (3) “유저 인스턴스 제한값” 저장소 추가 (data/settings.json)
-- 파일: `auto_api/settings_store.py` (신규)
+- 파일: `api/settings_store.py` (신규)
 - 저장 위치: `data/settings.json`
 - 환경변수:
   - `HEXACTF_USER_INSTANCE_LIMIT` (기본값, default: `2`)
   - `HEXACTF_MAX_USER_INSTANCE_LIMIT` (관리자 UI로 설정 가능한 최대치, default: `50`)
 
 ### (4) 관리자 API에 설정 조회/수정 엔드포인트 추가
-- 파일: `auto_api/models.py`
+- 파일: `api/models.py`
   - `SettingsUpdateRequest` 추가
-- 파일: `auto_api/routes_admin.py`
+- 파일: `api/auth/routes_admin.py`
   - `GET /api/admin/settings` 추가
   - `POST /api/admin/settings` 추가
 
 ### (5) challenges 목록에서 서버 절대경로(`dir`) 숨김
-- 파일: `auto_api/routes_challenges.py`
+- 파일: `api/routes_challenges.py`
 - 변경: `/api/challenges` 응답에서 `dir` 제거 (`ch.pop("dir", None)`)
 
 ### (6) instances.json 로딩 안정성 개선
-- 파일: `auto_api/state_store.py`
+- 파일: `api/state_store.py`
 - 변경: JSON 깨짐/형식 오류 시 기본 상태로 fallback + `next_instance_id`/`instances` 타입 보정
 
 ### (7) Docker SDK가 없을 때 서버 전체가 죽지 않게 완화
-- 파일: `auto_api/auto_deploy.py`, `auto_api/auto_stop.py`
+- 파일: `api/auto_api/auto_deploy.py`, `api/auto_api/auto_stop.py`
 - 변경: `docker` 모듈을 함수 내부에서 import (없으면 명확한 에러 메시지 반환/raise)
 
 ### (8) 파일 동시접속 레이스(권한/상태 꼬임) 방지: 락 + atomic write
-- 파일: `auto_api/storage_utils.py` (신규)
+- 파일: `api/storage_utils.py` (신규)
   - `exclusive_lock()` (POSIX flock 기반)
   - `atomic_write_json()/atomic_write_text()` (temp file → replace)
 - 적용 파일:
-  - `auto_api/auth.py` (`data/users.json`)
-  - `auto_api/state_store.py` (`instances.json`)
-  - `auto_api/settings_store.py` (`data/settings.json`)
-  - `auto_api/token.py` (`data/secret.key`)
+  - `api/auth/auth.py` (`data/users.json`)
+  - `api/state_store.py` (`instances.json`)
+  - `api/settings_store.py` (`data/settings.json`)
+  - `api/token.py` (`data/secret.key`)
 
 ### (9) 기본 관리자 계정 “계속 생성” 문제 개선
-- 파일: `auto_api/auth.py`
+- 파일: `api/auth/auth.py`
 - 변경:
   - 기존: `admin` 계정이 없으면 무조건 `admin/admin` 생성
   - 변경: **“관리자 계정이 하나도 없을 때만”** 기본 관리자 생성
@@ -146,27 +151,27 @@
     - `HEXACTF_ADMIN_PASSWORD` (default: `admin`)
 
 ### (10) 비밀번호 해시 강화(PBKDF2) + 자동 마이그레이션
-- 파일: `auto_api/auth.py`
+- 파일: `api/auth/auth.py`
 - 변경:
   - 신규 저장 포맷: `pbkdf2_sha256$<iterations>$<salt_hex>$<hash_hex>`
   - 기존 legacy 포맷(`salt$sha256(...)`)은 로그인 성공 시 자동으로 PBKDF2 포맷으로 업그레이드
   - iterations 환경변수: `HEXACTF_PBKDF2_ITERATIONS` (default: `200000`)
 
 ### (11) 토큰 시크릿(HEXACTF_SECRET) 영구화
-- 파일: `auto_api/token.py`
+- 파일: `api/token.py`
 - 변경:
   - `HEXACTF_SECRET`가 없으면 `data/secret.key`를 생성해서 HMAC 시크릿으로 사용(재시작해도 토큰 검증 유지)
   - 동시 실행 시에도 안전하도록 락 적용
 
 ### (12) 인증 쿠키 지원 + 로그아웃 API
-- 파일: `auto_api/routes_auth.py`, `auto_api/deps.py`
+- 파일: `api/auth/routes_auth.py`, `api/auth/deps.py`
 - 변경:
   - `/api/auth/login`, `/api/auth/register`에서 `hexactf_token` HttpOnly 쿠키 설정
   - `/api/auth/logout` 추가(쿠키 삭제)
   - 서버는 `Authorization: Bearer ...`가 없으면 쿠키에서 토큰을 읽어 인증
 
 ### (13) 다운로드 인증 요구
-- 파일: `auto_api/routes_challenges.py`
+- 파일: `api/routes_challenges.py`
 - 변경: `/api/download/...`는 로그인(인증) 필수로 변경
 
 ---
@@ -233,9 +238,135 @@
 
 ---
 
-## 4) 이번 수정에서 ‘아직’ 손대지 않은 보안/구조 이슈(메모)
+## 4) (추가) API 모듈 연결/구조 정리
+
+요청하신 “권한/인증은 권한대로, 컨테이너 생성은 그쪽대로” 정리를 위해, 실제 코드도 아래 방향으로 분리했습니다(기능 변화는 최소).
+
+### (4-1) import/경로 꼬임 정리
+- 공용 유틸을 `api/storage_utils.py`로 올려서 전역에서 사용
+- 설정 저장소를 `api/settings_store.py`로 올려서 전역에서 사용
+- FastAPI app 연결을 실제 파일 위치에 맞게 수정: `api/api.py`가 도메인 라우터를 직접 include
+- `api/auth/auth.py`의 `data/` 경로 계산을 수정(항상 repo 루트의 `data/` 사용)
+
+### (4-2) 도메인별 디렉토리로 분리
+- Instances(컨테이너/인스턴스):
+  - 라우터: `api/instances/routes.py`
+  - 서비스: `api/instances/service.py`
+  - 런타임(docker): `api/instances/runtime.py`
+  - 저장소 파사드: `api/instances/store.py`
+  - 호환용 re-export: `api/routes_instances.py`
+- Challenges(문제/다운로드):
+  - 라우터: `api/challenges/routes.py`
+  - 스토어: `api/challenges/store.py`
+  - 호환용 re-export: `api/routes_challenges.py`, `api/challenge_store.py`
+- Pages(HTML 서빙):
+  - 라우터: `api/pages/routes.py`
+  - 호환용 re-export: `api/routes_pages.py`
+- Scoreboard:
+  - 라우터: `api/scoreboard/routes.py`
+  - 호환용 re-export: `api/routes_scoreboard.py`
+
+## 5) 이번 수정에서 ‘아직’ 손대지 않은 보안/구조 이슈(메모)
 
 이번에 큰 축은 정리했지만, 아래는 추가로 고려하면 좋은 포인트:
-- 쿠키 인증을 쓰는 만큼, 더 엄격한 CSRF 방어가 필요할 수 있음(현재는 `SameSite=Lax`에 의존)
-- `access_token`을 응답 바디로 여전히 내려줌(외부 API 클라이언트 호환 목적). 완전한 “토큰 비노출”이 목표면 제거/옵션화 권장
+- 쿠키 인증 CSRF 방어는 추가했지만(아래 참고), 운영 환경에 따라 SameSite/도메인/프록시 설정까지 함께 점검 필요
+- `access_token`은 **옵션으로 응답 바디에서 숨길 수 있게** 했지만(기본은 유지), 완전 비노출 정책이면 기본값도 바꾸는 것을 권장
 - 파일 기반 저장소는 락/atomic write로 안정성은 올렸지만, 규모가 커지면 DB 도입 고려
+
+---
+
+## 6) (추가) CSRF 방어 + access_token 옵션화
+
+### (6-1) CSRF (Double-submit cookie)
+- 쿠키 인증(Authorization Bearer 미사용) 상태에서 **POST/DELETE** 요청은 `X-CSRF-Token` 헤더가 필요합니다.
+- 서버는 `hexactf_csrf` 쿠키와 `X-CSRF-Token` 헤더가 일치해야 통과합니다.
+- 반영 파일:
+  - 서버: `api/auth/deps.py` (`require_csrf`), `api/auth/routes_auth.py`, `api/auth/routes_admin.py`, `api/instances/routes.py`
+  - 프론트: `static/js/app-core.js`(csrf 읽기), `static/js/app-auth.js`, `static/js/app-admin.js`, `static/js/app-challenges.js`
+
+### (6-2) access_token 응답 바디 옵션
+- 환경변수 `HEXACTF_RETURN_ACCESS_TOKEN`로 `/api/auth/login`, `/api/auth/register` 응답 바디의 `access_token` 포함 여부를 조절합니다.
+  - 기본: `1`(기존 호환 유지)
+  - 비노출: `0` (쿠키만 사용)
+
+### (6-3) Login CSRF(세션 고정) 완화
+- `/api/auth/login`, `/api/auth/register`는 쿠키를 새로 설정(Set-Cookie)하므로, 브라우저 기준으로는 “다른 사이트에서 로그인/회원가입 요청을 날려 세션을 바꿔치기”하는 시도가 가능합니다.
+- 이를 완화하기 위해 `Origin`/`Referer`가 있는 요청은 **same-origin**만 허용하도록 체크를 추가했습니다.
+  - 파일: `api/auth/routes_auth.py` (`require_same_origin`)
+
+---
+
+## 7) (추가) challenges.json 로드 방식
+
+요청하신 대로 **서버 시작 시 1회 로드(캐시)** 모드가 기본입니다.
+- 환경변수: `HEXACTF_CHALLENGES_CACHE`
+  - 기본값 `1` → 서버 시작 시 캐시 로드 + 이후 요청은 캐시 사용
+  - `0` → 기존 방식(요청마다 파일 읽기)
+- 관련 파일:
+  - 캐시 로직: `api/challenges/store.py`
+  - startup에서 캐시 warm-up: `api/api.py`
+
+---
+
+## 8) (추가) challenges 캐시 리로드 + 라우트 스텁 정리
+
+### (8-1) 관리자 리로드 엔드포인트
+- `POST /api/admin/challenges/reload` 추가
+  - 서버 캐시를 다시 로드하고(`challenges.json` 반영) 로드된 개수를 반환
+  - 파일: `api/auth/routes_admin.py`
+
+### (8-2) 관리자 UI 버튼 추가
+- Admin 페이지에 “Reload Challenges” 버튼 추가
+  - 파일: `static/pages/admin.html`, `static/js/app-admin.js`, `static/js/app-core.js`
+
+### (8-3) 라우트 re-export 스텁 제거
+- 이제 도메인 라우터로 직접 import하므로 아래 스텁들은 삭제:
+  - `api/routes_instances.py`, `api/routes_challenges.py`, `api/routes_pages.py`, `api/routes_scoreboard.py`
+  - `api/challenge_store.py`
+
+---
+
+## 9) (추가) 모듈 수 축소 리팩터링
+
+요청대로 **디렉터리로 기능을 분리하되 모듈 수는 줄이는 방향**으로 정리했습니다.
+
+- `api/app/` 아래에 기능을 합쳐 “도메인별 단일 파일”로 통합:
+  - `api/app/instances.py` (routes + service + runtime + store)
+  - `api/app/challenges.py` (routes + load/cache + downloads)
+  - `api/app/pages.py`
+  - `api/app/scoreboard.py`
+- 기존 `api/instances/*`, `api/challenges/*`, `api/pages/*`, `api/scoreboard/*`는 제거
+- `api/api.py`는 새 `api/app/*` 라우터를 include하도록 갱신
+
+---
+
+## 10) (추가) 오류 처리 정리
+
+- 인스턴스 시작 시 `challenges.json` 로드 오류를 명확히 처리:
+  - 파일 없음/JSON 오류 → `500` 에러 메시지로 변환
+  - 파일: `api/app/instances.py`
+- 관리자 캐시 리로드에서도 동일하게 파일 오류를 HTTP 에러로 변환:
+  - 파일: `api/auth/routes_admin.py`
+
+---
+
+## 11) (추가) 안정성 점검 보강
+
+- startup 캐시 로드 실패를 조용히 무시하지 않고 로그로 남김:
+  - 파일: `api/api.py`
+- `challenges.json`이 dict가 아니면 명확히 오류 처리:
+  - 파일: `api/app/challenges.py`
+- 인스턴스 생성 시 challenge 엔트리 타입/dir 누락을 명확히 검사:
+  - 파일: `api/app/instances.py`
+
+---
+
+## 12) (추가) 플래그 제출 + 남은 문제 등록
+
+- 플래그 제출 API 추가: `POST /submit` 및 `POST /api/submit`
+  - challenges.json의 `flag` 또는 `flag_path`로 검증
+  - 정답이면 유저 점수/solved 갱신
+  - 파일: `api/app/challenges.py`, `api/auth/auth.py`, `api/models.py`
+- `challenges.json`에 남은 문제 항목 추가
+  - container가 필요 없는 문제는 `"container": false`로 지정
+  - `container_dir`로 Dockerfile 위치 분리 지원
